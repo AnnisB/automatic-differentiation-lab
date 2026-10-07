@@ -1,7 +1,7 @@
 """Scalar reverse mode."""
 
 from typing import Callable, Iterable
-
+import math
 
 class Value:
     """A node in a scalar computational graph."""
@@ -29,19 +29,33 @@ class Value:
     # - assign it to out._backward, and return out.
     def __add__(self, other: "Value | float") -> "Value":
         other = self._coerce(other)
-        raise NotImplementedError("Exercise: Value.__add__ (docs/scalar/reverse-tape.md)")
+        out = Value(self.data + other.data, (self, other), "+")
+        def _backward():
+            self.grad += out.grad
+            other.grad += out.grad
+        out._backward = _backward
+        return out 
 
     __radd__ = __add__
 
     def __mul__(self, other: "Value | float") -> "Value":
         other = self._coerce(other)
-        raise NotImplementedError("Exercise: Value.__mul__ (docs/scalar/reverse-tape.md)")
+        out = Value(self.data * other.data, (self, other), "*")
+        def _backward():
+            self.grad += out.grad * other.data
+            other.grad += out.grad * self.data
+        out._backward = _backward
+        return out 
 
     __rmul__ = __mul__
 
     def __pow__(self, p: float) -> "Value":
         assert isinstance(p, (int, float)), "only constant real powers supported"
-        raise NotImplementedError("Exercise: Value.__pow__ (docs/scalar/reverse-tape.md)")
+        out = Value(self.data ** p, (self,), f"**{p}")
+        def _backward():
+            self.grad += out.grad * p * self.data ** (p-1)
+        out._backward = _backward
+        return out 
 
     # derived ops
     def __neg__(self) -> "Value":
@@ -61,21 +75,45 @@ class Value:
 
     # elementary functions (EXERCISE)
     def exp(self) -> "Value":
-        raise NotImplementedError("Exercise: Value.exp (docs/scalar/reverse-tape.md)")
+        val = math.exp(self.data)
+        out = Value(val, (self,), "exp")
+        def _backward():
+            self.grad += out.grad * val
+        out._backward = _backward
+        return out     
 
     def log(self) -> "Value":
-        raise NotImplementedError("Exercise: Value.log (docs/scalar/reverse-tape.md)")
+        out = Value(math.log(self.data), (self,), "log")
+        def _backward():
+            self.grad += out.grad / self.data
+        out._backward = _backward
+        return out   
 
     def tanh(self) -> "Value":
-        raise NotImplementedError("Exercise: Value.tanh (docs/scalar/reverse-tape.md)")
-
+        val = math.tanh(self.data)
+        out = Value(val, (self,), "tanh")
+        def _backward():
+            self.grad += out.grad * (1 - val**2)
+        out._backward = _backward
+        return out   
+    
     def relu(self) -> "Value":
-        raise NotImplementedError("Exercise: Value.relu (docs/scalar/reverse-tape.md)")
-
+        out = Value(max(0.0, self.data), (self,), "relu")
+        def _backward():
+            self.grad += out.grad * (self.data > 0)
+        out._backward = _backward
+        return out   
+    
     # reverse pass (EXERCISE)
     def backward(self) -> None:
         """Run reverse-mode autodiff seeded at ``self`` (assumed scalar output). """
-        raise NotImplementedError("Exercise: Value.backward (docs/scalar/reverse-tape.md)")
+        order = topo_sort(self)
+        for node in order:
+            node.grad = 0.0
+        self.grad = 1.0
+        for node in reversed(order):
+            node._backward()
+        
 
 
 def topo_sort(root: Value) -> list[Value]:
@@ -83,7 +121,16 @@ def topo_sort(root: Value) -> list[Value]:
 
     EXERCISE -- see docs/scalar/reverse-tape.md.
     """
-    raise NotImplementedError("Exercise: topo_sort (docs/scalar/reverse-tape.md)")
+    order = []
+    visited = set()
+    def visit(node):
+        if node not in visited:
+            visited.add(node)
+            for parent in node._prev:
+                visit(parent)
+            order.append(node)
+    visit(root)
+    return order
 
 
 def is_valid_topo_order(order: Iterable[Value]) -> bool:

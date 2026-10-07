@@ -25,4 +25,12 @@ def gradient_descent(
 
     EXERCISE -- see docs/train-mlp.md.
     """
-    raise NotImplementedError("Exercise: gradient_descent (docs/train-mlp.md)")
+    argnums = tuple(range(len(params)))
+    vg = value_and_grad(loss_fn, argnums=argnums)
+
+    history = []
+    for _ in range(steps):
+        loss_value, grads = vg(*params)
+        history.append(loss_value)
+        params = [p - lr * g for p, g in zip(params, grads)]
+    return params, history

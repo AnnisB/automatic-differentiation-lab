@@ -12,8 +12,16 @@ def unbroadcast(grad: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
 
     EXERCISE -- see docs/vector/reverse.md.
     """
-    raise NotImplementedError("Exercise: unbroadcast (docs/vector/reverse.md)")
+    grad = np.asarray(grad)
 
+    while len(shape) < grad.ndim:
+        grad = grad.sum(axis=0)
+
+    for axis, size in enumerate(shape):
+        if size == 1:
+            grad = grad.sum(axis=axis, keepdims=True)
+
+    return grad.reshape(shape)
 
 class Node:
     """A node wrapping a numpy array in the reverse-mode tape."""
@@ -48,27 +56,61 @@ class Node:
     # and return out.
     def __add__(self, other: ArrayLike) -> "Node":
         other = self._coerce(other)
-        raise NotImplementedError("Exercise: Node.__add__ (docs/vector/reverse.md)")
+        out = Node(self.value + other.value, (self, other), "+")
+
+        def _backward():
+            self.grad += unbroadcast(out.grad, self.shape)
+            other.grad += unbroadcast(out.grad, other.shape)
+
+        out._backward = _backward
+        return out
 
     __radd__ = __add__
 
     def __mul__(self, other: ArrayLike) -> "Node":
         other = self._coerce(other)
-        raise NotImplementedError("Exercise: Node.__mul__ (docs/vector/reverse.md)")
-
+        out = Node(self.value * other.value, (self, other), "*")
+        
+        def _backward():
+            self.grad += unbroadcast(out.grad * other.value, self.shape)
+            other.grad += unbroadcast(out.grad * self.value, other.shape)
+        
+        out._backward = _backward
+        return out
+        
     __rmul__ = __mul__
 
     def __truediv__(self, other: ArrayLike) -> "Node":
         other = self._coerce(other)
-        raise NotImplementedError("Exercise: Node.__truediv__ (docs/vector/reverse.md)")
-
+        out = Node(self.value / other.value, (self, other), "/")
+        
+        def _backward():
+            self.grad += unbroadcast(out.grad / other.value, self.shape)
+            other.grad += unbroadcast(-out.grad * self.value / (other.value ** 2), other.shape)
+        
+        out._backward = _backward
+        return out
+    
     def __pow__(self, p: float) -> "Node":
-        raise NotImplementedError("Exercise: Node.__pow__ (docs/vector/reverse.md)")
+        out = Node(self.value ** p, (self,), f"**{p}")
+        
+        def _backward():
+            self.grad += out.grad * p * self.value ** (p - 1)
+        
+        out._backward = _backward
+        return out
 
     def __matmul__(self, other: ArrayLike) -> "Node":
         # use the given _matmul_lhs_grad / _matmul_rhs_grad helpers in _backward
         other = self._coerce(other)
-        raise NotImplementedError("Exercise: Node.__matmul__ (docs/vector/reverse.md)")
+        out = Node(self.value @ other.value, (self, other), "@")
+        
+        def _backward():
+            self.grad += _matmul_lhs_grad(out.grad, self.value, other.value)
+            other.grad += _matmul_rhs_grad(out.grad, self.value, other.value)
+        
+        out._backward = _backward
+        return out
 
     # derived / reflected ops (given)
     def __sub__(self, other: ArrayLike) -> "Node":
@@ -91,7 +133,13 @@ class Node:
 
         EXERCISE -- see docs/vector/reverse.md.
         """
-        raise NotImplementedError("Exercise: Node.sum (docs/vector/reverse.md)")
+        out = Node(self.value.sum(axis=axis), (self,), "sum")
+        def _backward():
+            g = _restore_axes(out.grad, self.shape, axis)
+            self.grad += np.broadcast_to(g, self.shape)
+        
+        out._backward = _backward
+        return out
 
     def mean(self, axis: int | tuple[int, ...] | None = None) -> "Node":
         n = (
@@ -103,16 +151,43 @@ class Node:
 
     # elementwise functions (EXERCISE)
     def exp(self) -> "Node":
-        raise NotImplementedError("Exercise: Node.exp (docs/vector/reverse.md)")
+        val = np.exp(self.value)
+        out = Node(val, (self,), "exp")
 
+        def _backward():
+            self.grad += out.grad * val
+
+        out._backward = _backward
+        return out
+        
+        
     def log(self) -> "Node":
-        raise NotImplementedError("Exercise: Node.log (docs/vector/reverse.md)")
+        out = Node(np.log(self.value), (self,), "log")
 
+        def _backward():
+            self.grad += out.grad / self.value
+
+        out._backward = _backward
+        return out
+    
     def tanh(self) -> "Node":
-        raise NotImplementedError("Exercise: Node.tanh (docs/vector/reverse.md)")
+        val = np.tanh(self.value)
+        out = Node(val, (self,), "tanh")
+
+        def _backward():
+            self.grad += out.grad * (1 - val**2)
+
+        out._backward = _backward
+        return out
 
     def relu(self) -> "Node":
-        raise NotImplementedError("Exercise: Node.relu (docs/vector/reverse.md)")
+        out = Node(np.maximum(self.value, 0.0), (self,), "relu")
+
+        def _backward():
+            self.grad += out.grad * (self.value > 0)
+
+        out._backward = _backward
+        return out
 
     # reverse pass (EXERCISE)
     def backward(self) -> None:
@@ -123,7 +198,12 @@ class Node:
 
         EXERCISE -- see docs/vector/reverse.md.
         """
-        raise NotImplementedError("Exercise: Node.backward (docs/vector/reverse.md)")
+        order = _topo(self)
+        for node in order:
+            node.grad = np.zeros_like(node.value)
+        self.grad = np.ones_like(self.value)
+        for node in reversed(order):
+            node._backward()
 
 
 # matrix helpers

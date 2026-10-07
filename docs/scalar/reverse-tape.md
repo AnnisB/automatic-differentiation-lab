@@ -19,7 +19,6 @@ Note that
 The DAG for `a*b + exp(a)` with each node's `data` and `grad` annotated *after* `backward()`.
 Note `a` feeds two ops, so its gradient is the sum of the two paths: $b + e^a = 3 + e^2 \approx 10.39$.
 
-
 ## Exercise
 
 Implement the scalar tape in [`src/easygrad/scalar_reverse.py`](https://github.com/svaiter/easygrad/blob/main/src/easygrad/scalar_reverse.py).

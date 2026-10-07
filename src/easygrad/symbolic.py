@@ -22,6 +22,14 @@ def swell_demo(max_iter: int = 5) -> list[tuple[int, int]]:
 
     Returns a list of ``(n, node_count)`` pairs.
     """
-    raise NotImplementedError(
-        "Exercise: implement swell_demo (docs/primer/symbolic.md)"
-    )
+    x, r = sp.symbols("x r")
+    xn = x
+    results = []
+    for n in range(max_iter + 1):
+        derivative = sp.diff(xn, x)
+        expanded = sp.expand(derivative)
+        size = expression_size(expanded)
+        results.append((n, size))
+        xn = logistic_map(xn, r)
+
+    return results

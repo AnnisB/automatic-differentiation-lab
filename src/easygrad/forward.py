@@ -39,43 +39,43 @@ class DualArray:
     # Return a new DualArray
     def __add__(self, other: ArrayLike) -> "DualArray":
         o = self._coerce(other)
-        raise NotImplementedError("Exercise: DualArray.__add__ (docs/vector/forward.md)")
-
+        return DualArray(self.primal + o.primal, self.tangent + o.tangent)
+   
     __radd__ = __add__
 
     def __sub__(self, other: ArrayLike) -> "DualArray":
         o = self._coerce(other)
-        raise NotImplementedError("Exercise: DualArray.__sub__ (docs/vector/forward.md)")
+        return DualArray(self.primal - o.primal, self.tangent - o.tangent)
 
     def __rsub__(self, other: ArrayLike) -> "DualArray":
         return self._coerce(other).__sub__(self)
 
     def __mul__(self, other: ArrayLike) -> "DualArray":
         o = self._coerce(other)
-        raise NotImplementedError("Exercise: DualArray.__mul__ (docs/vector/forward.md)")
+        return DualArray(self.primal * o.primal, self.primal * o.tangent + self.tangent * o.primal)
 
     __rmul__ = __mul__
 
     def __truediv__(self, other: ArrayLike) -> "DualArray":
         o = self._coerce(other)
-        raise NotImplementedError("Exercise: DualArray.__truediv__ (docs/vector/forward.md)")
+        return DualArray(self.primal/o.primal, (self.tangent * o.primal - self.primal * o.tangent)/o.primal**2)
 
     def __rtruediv__(self, other: ArrayLike) -> "DualArray":
         return self._coerce(other).__truediv__(self)
 
     def __pow__(self, p: float) -> "DualArray":
-        raise NotImplementedError("Exercise: DualArray.__pow__ (docs/vector/forward.md)")
+        return DualArray(self.primal**p, self.tangent*p*self.primal**(p-1))
 
     def __neg__(self) -> "DualArray":
-        raise NotImplementedError("Exercise: DualArray.__neg__ (docs/vector/forward.md)")
+        return DualArray(-self.primal, -self.tangent)
 
     def __matmul__(self, other: ArrayLike) -> "DualArray":
         o = self._coerce(other)
-        raise NotImplementedError("Exercise: DualArray.__matmul__ (docs/vector/forward.md)")
+        return DualArray(self.primal @ o.primal, self.primal @ o.tangent + self.tangent @ o.primal)
 
     def __rmatmul__(self, other: ArrayLike) -> "DualArray":
         o = self._coerce(other)
-        raise NotImplementedError("Exercise: DualArray.__rmatmul__ (docs/vector/forward.md)")
+        return DualArray(o.primal @ self.primal, o.primal @ self.tangent + o.tangent @ self.primal)
 
     # reductions (given)
     def sum(self, axis=None) -> "DualArray":
@@ -90,25 +90,27 @@ class DualArray:
 # The numpy branch is given. fill in the DualArray one.
 def exp(x: ArrayLike) -> ArrayLike:
     if isinstance(x, DualArray):
-        raise NotImplementedError("Exercise: forward.exp (docs/vector/forward.md)")
+        val = np.exp(x.primal)
+        return DualArray(val, x.tangent * val)    
     return np.exp(x)
 
 
 def log(x: ArrayLike) -> ArrayLike:
     if isinstance(x, DualArray):
-        raise NotImplementedError("Exercise: forward.log (docs/vector/forward.md)")
+        return DualArray(np.log(x.primal), x.tangent * 1 / x.primal)
     return np.log(x)
 
 
 def tanh(x: ArrayLike) -> ArrayLike:
     if isinstance(x, DualArray):
-        raise NotImplementedError("Exercise: forward.tanh (docs/vector/forward.md)")
+        val = np.tanh(x.primal)
+        return DualArray(val, x.tangent * (1 - val**2))
     return np.tanh(x)
 
 
 def relu(x: ArrayLike) -> ArrayLike:
     if isinstance(x, DualArray):
-        raise NotImplementedError("Exercise: forward.relu (docs/vector/forward.md)")
+        return DualArray(np.maximum(0.0, x.primal), x.tangent * (x.primal > 0))
     return np.maximum(x, 0.0)
 
 

@@ -21,9 +21,17 @@ def finite_difference(
     Implement the three schemes (see docs/primer/numerical.md). Raise
     ``ValueError`` for an unknown ``scheme``.
     """
-    raise NotImplementedError(
-        "Exercise: implement finite_difference (docs/primer/numerical.md)"
-    )
+    if scheme == "forward":
+        return (f(x+h)-f(x))/h
+    
+    elif scheme == "backward":
+        return (f(x)-f(x-h))/h
+
+    elif scheme == "central":
+        return (f(x+h)-f(x-h))/(2*h)  
+
+    else:
+        raise ValueError("unknown scheme")
 
 
 def complex_step(
@@ -39,9 +47,7 @@ def complex_step(
     --------
     Implement the complex-step estimate (see docs/primer/complex-step.md).
     """
-    raise NotImplementedError(
-        "Exercise: implement complex_step (docs/primer/complex-step.md)"
-    )
+    return np.imag(f(x+1j*h)) / h
 
 
 # functions for the docs

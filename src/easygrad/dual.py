@@ -28,32 +28,29 @@ class Dual:
     # arithmetic (EXERCISE)
     # Implement the rule for the primal and tangent components.
     def __add__(self, other: "Dual | float") -> "Dual":
-        raise NotImplementedError(
-            "Exercise: Dual.__add__ (docs/scalar/forward-dual.md)"
-        )
+        other = self._coerce(other)
+        return Dual(self.primal + other.primal, self.tangent + other.tangent)
+        
 
     __radd__ = __add__
 
     def __sub__(self, other: "Dual | float") -> "Dual":
-        raise NotImplementedError(
-            "Exercise: Dual.__sub__ (docs/scalar/forward-dual.md)"
-        )
+        other = self._coerce(other)
+        return Dual(self.primal - other.primal, self.tangent - other.tangent)
 
     def __rsub__(self, other: "Dual | float") -> "Dual":
         # given once you have __sub__
         return self._coerce(other).__sub__(self)
 
     def __mul__(self, other: "Dual | float") -> "Dual":
-        raise NotImplementedError(
-            "Exercise: Dual.__mul__ (docs/scalar/forward-dual.md)"
-        )
+        other = self._coerce(other)
+        return Dual(self.primal * other.primal, self.primal * other.tangent + self.tangent * other.primal)
 
     __rmul__ = __mul__
 
     def __truediv__(self, other: "Dual | float") -> "Dual":
-        raise NotImplementedError(
-            "Exercise: Dual.__truediv__ (docs/scalar/forward-dual.md)"
-        )
+        other = self._coerce(other)
+        return Dual(self.primal/other.primal, (self.tangent * other.primal - self.primal * other.tangent)/other.primal**2)
 
     def __rtruediv__(self, other: "Dual | float") -> "Dual":
         # given once you have __truediv__
@@ -61,14 +58,10 @@ class Dual:
 
     def __pow__(self, p: float) -> "Dual":
         # constant real exponent only
-        raise NotImplementedError(
-            "Exercise: Dual.__pow__ (docs/scalar/forward-dual.md)"
-        )
+        return Dual(self.primal**p, self.tangent*p*self.primal**(p-1))
 
     def __neg__(self) -> "Dual":
-        raise NotImplementedError(
-            "Exercise: Dual.__neg__ (docs/scalar/forward-dual.md)"
-        )
+        return Dual(-self.primal, -self.tangent)
 
 
 # elementary functions (EXERCISE)
@@ -76,37 +69,40 @@ class Dual:
 # Fill in the Dual one. The return type is always Dual.
 def exp(x: float | Dual) -> Dual:
     if isinstance(x, Dual):
-        raise NotImplementedError("Exercise: dual.exp (docs/scalar/forward-dual.md)")
+        val = math.exp(x.primal)
+        return Dual(val, x.tangent * val) 
     return Dual(math.exp(x))
 
 
 def log(x: float | Dual) -> Dual:
     if isinstance(x, Dual):
-        raise NotImplementedError("Exercise: dual.log (docs/scalar/forward-dual.md)")
+        return Dual(math.log(x.primal), x.tangent * 1 / x.primal)
     return Dual(math.log(x))
 
 
 def sin(x: float | Dual) -> Dual:
     if isinstance(x, Dual):
-        raise NotImplementedError("Exercise: dual.sin (docs/scalar/forward-dual.md)")
+        return Dual(math.sin(x.primal), x.tangent * math.cos(x.primal))
     return Dual(math.sin(x))
 
 
 def cos(x: float | Dual) -> Dual:
     if isinstance(x, Dual):
-        raise NotImplementedError("Exercise: dual.cos (docs/scalar/forward-dual.md)")
+        return Dual(math.cos(x.primal), - x.tangent * math.sin(x.primal))
     return Dual(math.cos(x))
 
 
 def tanh(x: float | Dual) -> Dual:
     if isinstance(x, Dual):
-        raise NotImplementedError("Exercise: dual.tanh (docs/scalar/forward-dual.md)")
+        val = math.tanh(x.primal)
+        return Dual(val, x.tangent * (1 - val**2))
     return Dual(math.tanh(x))
 
 
 def sqrt(x: float | Dual) -> Dual:
     if isinstance(x, Dual):
-        raise NotImplementedError("Exercise: dual.sqrt (docs/scalar/forward-dual.md)")
+        val = math.sqrt(x.primal)
+        return Dual(val, x.tangent * 1 / (2*val))
     return Dual(math.sqrt(x))
 
 
